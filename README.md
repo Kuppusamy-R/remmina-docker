@@ -13,12 +13,12 @@ built from source. No app changes; only the shared library is patched.
 
 ## Run (Linux + X11 / XWayland)
 ```bash
-./run-remmina.sh
-# or, after pulling from a registry:
-IMAGE=<youruser>/remmina-fixed:24.04 ./run-remmina.sh
+./remmina-docker.sh            # validates the environment, pulls the image, launches
+./remmina-docker.sh --check    # run all validations only, don't launch
 ```
-Your connection profiles live on the host (`~/.config/remmina`) and are mounted in — the
-image itself ships **no profiles and no credentials**.
+The launcher checks your OS/display/Docker first and fails with a clear message if
+something's missing. Your connection profiles live on the host (`~/.config/remmina`) and
+are mounted in — the image itself ships **no profiles and no credentials**.
 
 Requirements: a Linux host with an X server (native X11, or XWayland on Wayland). macOS/
 Windows need an X server (e.g. VcXsrv/XQuartz) and are not covered here.
