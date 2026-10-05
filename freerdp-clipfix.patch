@@ -1,0 +1,46 @@
+From 0ae50ef681dfc581a94cd90bf9f36431c7acb7f8 Mon Sep 17 00:00:00 2001
+From: Kuppusamy R <kuppusamy433@gmail.com>
+Date: Mon, 5 Oct 2026 20:52:43 +0530
+Subject: [PATCH] Fix static channel PDU reassembly for multi-chunk messages
+
+channel_client_post_message() sized the reassembly stream to the first
+chunk's dataLength instead of the whole PDU's totalLength. When a static
+virtual channel PDU spans more than one CHANNEL_CHUNK_LENGTH (1600 byte)
+chunk, Stream_EnsureRemainingCapacity() later rounds the capacity up to
+the next 128-byte boundary, so on the final chunk
+Stream_Capacity(data_in) != Stream_GetPosition(data_in) and the PDU is
+rejected with 'read error' / ERROR_INTERNAL_ERROR (1359), tearing down
+the session. This broke e.g. Remmina clipboard paste of ~750+ characters
+(cliprdr FormatDataResponse split across chunks), regression from
+ead997147.
+
+Allocate the reassembly stream to totalLength on CHANNEL_FLAG_FIRST.
+
+Fixes #13486
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+---
+ channels/client/addin.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/channels/client/addin.c b/channels/client/addin.c
+index 9b3d040..90ce1ac 100644
+--- a/channels/client/addin.c
++++ b/channels/client/addin.c
+@@ -664,11 +664,11 @@ UINT channel_client_post_message(void* MsgsHandle, LPVOID pData, UINT32 dataLeng
+ 
+ 		if (internals->data_in)
+ 		{
+-			if (!Stream_EnsureCapacity(internals->data_in, dataLength))
++			if (!Stream_EnsureCapacity(internals->data_in, totalLength))
+ 				return CHANNEL_RC_NO_MEMORY;
+ 		}
+ 		else
+-			internals->data_in = Stream_New(nullptr, dataLength);
++			internals->data_in = Stream_New(nullptr, totalLength);
+ 	}
+ 
+ 	if (!(data_in = internals->data_in))
+-- 
+2.43.0
+

@@ -1,0 +1,10 @@
+# build / editor cruft — nothing here is needed to build the image
+*.bak
+*.bak.*
+*.log
+.DS_Store
+*~
+
+# never commit local Remmina config or credentials
+testhome/
+*.remmina
